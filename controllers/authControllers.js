@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('../config/firebase');
 const moment = require('moment');
+const SECRET = '8fJr9qZL6yDgM1bNpXvW2sT7V3oKbF5C';
 
 exports.registro = async (req, res) => {
     const {email, phone, dob, username, password} = req.body;
@@ -77,5 +78,79 @@ exports.registro = async (req, res) => {
 }
 
 exports.login = async(req, res) => {
-    
+    const {username, password} = req.body;
+
+    if(!username || !password){
+        return res.status(400).json({
+            statusCode: 400,
+            intMessage: "Datos Incompletos",
+            data: { message: "Todos los campos son requeridos" },
+          });
+    }
+    try {
+        
+        const userQuery = await db.collection('usuarios')
+        .where('usuario', '==', username)
+        .get();
+  
+      if (userQuery.empty) {
+        return res.status(404).json({
+          statusCode: 404,
+          intMessage: 'Usuario no encontrado',
+          data: { message: 'El usuario no existe' },
+        });
+      }
+  
+      const document = userQuery.docs[0];
+      const user = document.data();
+      const validPassword = await bcrypt.compare(password, user.password);
+  
+      if (!validPassword) {
+        return res.status(401).json({
+          statusCode: 401,
+          intMessage: 'No autorizado',
+          data: { message: 'Contraseña incorrecta' },
+        });
+      }
+  
+      const roleDoc = await db.collection('roles').doc(user.roleId).get();
+      if (!roleDoc.exists) {
+        return res.status(404).json({
+          statusCode: 404,
+          intMessage: 'Rol no encontrado',
+          data: { message: 'El rol asociado al usuario no existe' },
+        });
+      }
+  
+      const rol = roleDoc.data();
+  
+      const token = jwt.sign(
+      {
+        roleName: rol.rolName,
+        usuario: user.usuario,
+        usuarioId: user.userId,
+        rol: user.rol,
+        email: user.email,
+        phone: user.telefono,
+        dob: user.fechaNacimiento
+      }, SECRET, 
+      { 
+          expiresIn: '1h' 
+      });
+  
+      const lastLogin = moment().format('DD-MM-YYYY HH:mm:ss');
+      await document.ref.update({ last_login: lastLogin });
+      
+      return res.status(200).json({
+        statusCode: 200,
+        intMessage: 'Autorizado',
+        data: 
+        { 
+          message: '¡Credenciales correctas!',
+          token: token,
+        },
+      });
+    } catch (error) {
+        
+    }
 }
