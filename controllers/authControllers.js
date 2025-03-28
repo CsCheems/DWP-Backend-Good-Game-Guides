@@ -78,6 +78,8 @@ exports.registro = async (req, res) => {
 }
 
 exports.login = async(req, res) => {
+
+    console.log('Entre al servicio de login');
     const {username, password} = req.body;
 
     if(!username || !password){
@@ -104,6 +106,8 @@ exports.login = async(req, res) => {
       const document = userQuery.docs[0];
       const user = document.data();
       const validPassword = await bcrypt.compare(password, user.password);
+
+      console.log(validPassword);
   
       if (!validPassword) {
         return res.status(401).json({
@@ -113,7 +117,7 @@ exports.login = async(req, res) => {
         });
       }
   
-      const roleDoc = await db.collection('roles').doc(user.roleId).get();
+      const roleDoc = await db.collection('roles').doc(user.rol).get();
       if (!roleDoc.exists) {
         return res.status(404).json({
           statusCode: 404,
@@ -137,6 +141,8 @@ exports.login = async(req, res) => {
       { 
           expiresIn: '1h' 
       });
+
+      console.log(token);
   
       const lastLogin = moment().format('DD-MM-YYYY HH:mm:ss');
       await document.ref.update({ last_login: lastLogin });
@@ -144,7 +150,7 @@ exports.login = async(req, res) => {
       return res.status(200).json({
         statusCode: 200,
         intMessage: 'Autorizado',
-        data: 
+        result: 
         { 
           message: '¡Credenciales correctas!',
           token: token,
