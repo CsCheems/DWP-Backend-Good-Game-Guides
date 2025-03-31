@@ -8,7 +8,6 @@ const speakeasy = require('speakeasy');
 
 exports.registro = async (req, res) => {
     const {email, phone, dob, username, password} = req.body;
-
     if(!email || !phone || !dob || !username || !password){
         return res.status(400).json({
             statusCode: 400,
@@ -16,9 +15,7 @@ exports.registro = async (req, res) => {
             data: { message: "Todos los campos son requeridos" },
           });
     }
-
     const roleId = 'divEXH8fhzEdMw0wwS4y';
-    
     try{
         let userQuery = await db
         .collection('usuarios')
@@ -32,12 +29,10 @@ exports.registro = async (req, res) => {
                 data: { message: "El usuario ya existe" },
               });
         }
-
         userQuery = await db
         .collection("users")
         .where("email", "==", email)
         .get();
-
         if (!userQuery.empty) {
             return res.status(409).json({
                 statusCode: 409,
@@ -45,12 +40,9 @@ exports.registro = async (req, res) => {
                 data: { message: "El email ya esta en uso" },
             });
         }
-
         let hashPassword = await bcrypt.hash(password, 10);
 
         const fecha = new Intl.DateTimeFormat('es-ES').format(new Date(dob));
-
-        const secret = speakeasy.generateSecret({length:20});
         
         const nuevoUsuario = await db.collection('usuarios').add({
             usuario: username,
@@ -60,7 +52,6 @@ exports.registro = async (req, res) => {
             fechaNacimiento: fecha,
             last_login: '',
             rol: roleId,
-            mfaSecret: secret.base32,
             mfaActivo: false
         });
 
@@ -71,7 +62,6 @@ exports.registro = async (req, res) => {
             intMessage: "Creado",
             data: {
                 message: 'Registro exitoso',
-                mfaUrl: secret.otpauth_url,
             }
         });
 
@@ -132,8 +122,6 @@ exports.login = async(req, res) => {
           }
         })
       }
-
-      console.log('No requiere 2FA');
   
       const roleDoc = await db.collection('roles').doc(user.rol).get();
       if (!roleDoc.exists) {
@@ -174,7 +162,11 @@ exports.login = async(req, res) => {
         },
       });
     } catch (error) {
-        
+      return res.status(500).json({
+        statusCode: 500,
+        intMessage: "Error",
+        data: { message: "Error en la respuesta del servidor" },
+    });
     }
 }
 
@@ -368,16 +360,11 @@ exports.activar2FA = async (req, res) => {
       });
     }
 
-    console.log(user.mfaSecret);
-
-
     const verified = speakeasy.totp.verify({
       secret: user.mfaSecret,
       encoding: 'base32',
       token: code,
     });
-
-    console.log(verified);
 
     if (verified) {
       await document.ref.update({
@@ -396,8 +383,8 @@ exports.activar2FA = async (req, res) => {
           dob: user.fechaNacimiento, 
           mfa: user.mfaEnabled,
         },
-        SECRET, // Asegúrate de usar tu clave secreta correcta
-        { expiresIn: '1h' } // Define el tiempo de expiración según tus necesidades
+        SECRET,
+        { expiresIn: '1h' }
       );
 
       return res.status(200).json({
@@ -423,7 +410,6 @@ exports.activar2FA = async (req, res) => {
       });
   }
 }
-
 
 exports.desactivar2FA = async (req, res) => {
   const {username, code} = req.body;

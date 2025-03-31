@@ -54,7 +54,6 @@ exports.recoveryEmail = async (req, res) => {
             text: `Tu token de recuperacion es: ${token}`
         };
 
-        // Enviamos el correo
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.log(error);

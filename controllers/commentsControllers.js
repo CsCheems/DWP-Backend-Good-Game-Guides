@@ -100,8 +100,6 @@ exports.obtenerComentarios = async (req, res) => {
         });
     }
 
-    //juegoId = Number(juegoId);
-
     try {
         const comentariosSnapshot = await db.collection('comentarios')
             .where('juego', '==', juegoId)
@@ -117,7 +115,7 @@ exports.obtenerComentarios = async (req, res) => {
         }
 
         const comentarios = comentariosSnapshot.docs.map((doc) => {
-            const data = doc.data();  // Obtiene los datos del documento
+            const data = doc.data(); 
             return {
                 comentarioId: doc.id,
                 autor: data.autor,
